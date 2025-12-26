@@ -18,8 +18,6 @@ ARG PGSODIUM_VERSION
 RUN apk add --no-cache \
     git \
     build-base \
-    clang17 \
-    llvm17 \
     postgresql-dev \
     curl \
     # PostGIS dependencies
@@ -34,11 +32,11 @@ RUN apk add --no-cache \
 
 WORKDIR /build
 
-# pgvector
+# pgvector (disable LLVM bitcode)
 RUN git clone --branch v${PGVECTOR_VERSION} --depth 1 https://github.com/pgvector/pgvector.git && \
     cd pgvector && \
-    make -j$(nproc) && \
-    make install
+    make OPTFLAGS="" USE_PGXS=1 WITH_LLVM=no -j$(nproc) && \
+    make USE_PGXS=1 WITH_LLVM=no install
 
 # PostGIS with Tiger geocoder and address standardizer
 RUN curl -L https://download.osgeo.org/postgis/source/postgis-${POSTGIS_VERSION}.tar.gz | tar xz && \
@@ -73,5 +71,5 @@ RUN apk add --no-cache \
 COPY --from=builder /usr/local/lib/postgresql/ /usr/local/lib/postgresql/
 COPY --from=builder /usr/local/share/postgresql/ /usr/local/share/postgresql/
 
-LABEL org.opencontainers.image.source="https://github.com/constructive/docker"
+LABEL org.opencontainers.image.source="https://github.com/constructive-io/docker"
 LABEL org.opencontainers.image.description="PostgreSQL 17 with pgvector, PostGIS, Tiger geocoder, and pgsodium"
