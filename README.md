@@ -48,14 +48,3 @@ make shell    # psql into container
 make clean    # Remove image
 ```
 
-## GitHub Actions
-
-Images are automatically built and pushed to `ghcr.io` on:
-- Push to `main`
-- Tagged releases (`v*`)
-
-Multi-arch support: `linux/amd64` and `linux/arm64`
-
-## License
-
-MIT License - see [LICENSE](./LICENSE)

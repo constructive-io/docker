@@ -1,4 +1,4 @@
-# Lean PostgreSQL image with pgvector, PostGIS, Tiger geocoder, and pgsodium
+# Lean PostgreSQL image with pgvector, PostGIS, pg_textsearch, and pgsodium
 # Multi-stage build - all toolchains discarded, only artifacts kept
 
 ARG PG_VERSION=17
@@ -51,6 +51,12 @@ RUN curl -L https://download.osgeo.org/postgis/source/postgis-${POSTGIS_VERSION}
     make -j$(nproc) && \
     make install
 
+# pg_textsearch (BM25)
+RUN git clone --depth 1 https://github.com/timescale/pg_textsearch.git && \
+    cd pg_textsearch && \
+    make -j$(nproc) && \
+    make install
+
 # pgsodium
 RUN git clone --branch v${PGSODIUM_VERSION} --depth 1 https://github.com/michelp/pgsodium.git && \
     cd pgsodium && \
@@ -78,4 +84,4 @@ COPY --from=builder /usr/local/lib/postgresql/ /usr/local/lib/postgresql/
 COPY --from=builder /usr/local/share/postgresql/ /usr/local/share/postgresql/
 
 LABEL org.opencontainers.image.source="https://github.com/constructive-io/docker"
-LABEL org.opencontainers.image.description="PostgreSQL 17 with pgvector, PostGIS, Tiger geocoder, and pgsodium"
+LABEL org.opencontainers.image.description="PostgreSQL 17 with pgvector, PostGIS, pg_textsearch, and pgsodium"
