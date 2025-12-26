@@ -12,7 +12,7 @@ Lean PostgreSQL 17 image with essential extensions for modern applications.
 |-----------|-------------|
 | [pgvector](https://github.com/pgvector/pgvector) | Vector similarity search for embeddings |
 | [PostGIS](https://postgis.net/) | Spatial and geographic data |
-| [Tiger Geocoder](https://postgis.net/docs/Extras.html#Tiger_Geocoder) | US address geocoding |
+| [pg_textsearch](https://www.tigerdata.com/docs/use-timescale/latest/extensions/pg-textsearch) | BM25 full-text search |
 | [pgsodium](https://github.com/michelp/pgsodium) | Encryption using libsodium |
 
 ## Usage
@@ -34,9 +34,7 @@ Enable extensions as needed:
 ```sql
 CREATE EXTENSION vector;
 CREATE EXTENSION postgis;
-CREATE EXTENSION fuzzystrmatch;
-CREATE EXTENSION address_standardizer;
-CREATE EXTENSION postgis_tiger_geocoder;
+CREATE EXTENSION pg_textsearch;
 CREATE EXTENSION pgsodium;
 ```
 

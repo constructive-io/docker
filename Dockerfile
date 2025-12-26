@@ -19,8 +19,8 @@ RUN apk add --no-cache \
     git \
     build-base \
     postgresql-dev \
-    clang \
-    llvm \
+    clang19 \
+    llvm19 \
     curl \
     # PostGIS dependencies
     geos-dev \
@@ -35,8 +35,8 @@ RUN apk add --no-cache \
 WORKDIR /build
 
 # Symlink clang for LLVM JIT (postgres expects clang-19)
-RUN ln -s /usr/bin/clang /usr/bin/clang-19 && \
-    ln -s /usr/bin/llvm-lto /usr/bin/llvm-lto-19
+RUN ln -s /usr/bin/clang-19 /usr/bin/clang && \
+    ln -s /usr/bin/llvm-lto-19 /usr/bin/llvm-lto
 
 # pgvector
 RUN git clone --branch v${PGVECTOR_VERSION} --depth 1 https://github.com/pgvector/pgvector.git && \

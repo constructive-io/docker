@@ -38,9 +38,7 @@ test: build
 	@docker exec $(CONTAINER_NAME)-test psql -U postgres -c " \
 		CREATE EXTENSION vector; \
 		CREATE EXTENSION postgis; \
-		CREATE EXTENSION fuzzystrmatch; \
-		CREATE EXTENSION address_standardizer; \
-		CREATE EXTENSION postgis_tiger_geocoder; \
+		CREATE EXTENSION pg_textsearch; \
 		CREATE EXTENSION pgsodium; \
 		SELECT 'all extensions OK';"
 	@docker stop $(CONTAINER_NAME)-test > /dev/null
