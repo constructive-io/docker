@@ -19,6 +19,8 @@ RUN apk add --no-cache \
     git \
     build-base \
     postgresql-dev \
+    clang \
+    llvm \
     curl \
     # PostGIS dependencies
     geos-dev \
@@ -32,11 +34,15 @@ RUN apk add --no-cache \
 
 WORKDIR /build
 
-# pgvector (disable LLVM bitcode)
+# Symlink clang for LLVM JIT (postgres expects clang-19)
+RUN ln -s /usr/bin/clang /usr/bin/clang-19 && \
+    ln -s /usr/bin/llvm-lto /usr/bin/llvm-lto-19
+
+# pgvector
 RUN git clone --branch v${PGVECTOR_VERSION} --depth 1 https://github.com/pgvector/pgvector.git && \
     cd pgvector && \
-    make OPTFLAGS="" USE_PGXS=1 WITH_LLVM=no -j$(nproc) && \
-    make USE_PGXS=1 WITH_LLVM=no install
+    make OPTFLAGS="" -j$(nproc) && \
+    make install
 
 # PostGIS with Tiger geocoder and address standardizer
 RUN curl -L https://download.osgeo.org/postgis/source/postgis-${POSTGIS_VERSION}.tar.gz | tar xz && \
