@@ -73,8 +73,5 @@ RUN apk add --no-cache \
 COPY --from=builder /usr/local/lib/postgresql/ /usr/local/lib/postgresql/
 COPY --from=builder /usr/local/share/postgresql/ /usr/local/share/postgresql/
 
-# Init script to enable extensions
-COPY docker-entrypoint-initdb.d/ /docker-entrypoint-initdb.d/
-
 LABEL org.opencontainers.image.source="https://github.com/constructive/docker"
 LABEL org.opencontainers.image.description="PostgreSQL 17 with pgvector, PostGIS, Tiger geocoder, and pgsodium"
