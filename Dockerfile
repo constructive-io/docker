@@ -34,9 +34,8 @@ RUN apk add --no-cache \
 
 WORKDIR /build
 
-# Symlink clang for LLVM JIT (postgres expects clang-19)
-RUN ln -s /usr/bin/clang-19 /usr/bin/clang && \
-    ln -s /usr/bin/llvm-lto-19 /usr/bin/llvm-lto
+# Symlink for LLVM JIT (postgres expects llvm-lto-19)
+RUN ln -s /usr/bin/llvm19-lto /usr/bin/llvm-lto-19
 
 # pgvector
 RUN git clone --branch v${PGVECTOR_VERSION} --depth 1 https://github.com/pgvector/pgvector.git && \
