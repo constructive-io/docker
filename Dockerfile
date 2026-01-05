@@ -53,7 +53,7 @@ RUN git clone --branch v${PGVECTOR_VERSION} --depth 1 https://github.com/pgvecto
 RUN curl -L https://download.osgeo.org/postgis/source/postgis-${POSTGIS_VERSION}.tar.gz | tar xz && \
     cd postgis-${POSTGIS_VERSION} && \
     ./configure --without-raster --without-topology && \
-    make -j$(nproc) && \
+    make && \
     make install
 
 # pg_textsearch (BM25)
