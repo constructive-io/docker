@@ -160,8 +160,8 @@ jobs:
           push: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            PG_VERSION=${{ env.PG_VERSION }}
+          # Note: pg_lake image uses Dockerfile default PG_VERSION (full version like 17.7)
+          # because it builds PostgreSQL from source and needs exact version number
           cache-from: type=gha,scope=postgres-plus-lake-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=postgres-plus-lake-${{ matrix.arch }}
 
@@ -175,8 +175,8 @@ jobs:
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
           outputs: type=image,name=${{ env.REGISTRY }}/constructive-io/docker/postgres-plus-lake,push-by-digest=true,push=true
-          build-args: |
-            PG_VERSION=${{ env.PG_VERSION }}
+          # Note: pg_lake image uses Dockerfile default PG_VERSION (full version like 17.7)
+          # because it builds PostgreSQL from source and needs exact version number
           cache-from: type=gha,scope=postgres-plus-lake-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=postgres-plus-lake-${{ matrix.arch }}
 
