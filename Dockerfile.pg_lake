@@ -2,7 +2,7 @@
 # Uses Debian base with PostgreSQL built from source (required for pg_lake internal headers)
 # Multi-stage build - all toolchains discarded, only artifacts kept
 
-ARG PG_VERSION=17.2
+ARG PG_VERSION=17.7
 ARG PGVECTOR_VERSION=0.8.0
 ARG POSTGIS_VERSION=3.5.1
 ARG PG_TEXTSEARCH_VERSION=0.2.0
