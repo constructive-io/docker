@@ -14,6 +14,7 @@ Lean PostgreSQL 17 image with essential extensions for modern applications.
 | [PostGIS](https://postgis.net/) | Spatial and geographic data |
 | [pg_textsearch](https://www.tigerdata.com/docs/use-timescale/latest/extensions/pg-textsearch) | BM25 full-text search |
 | [pgsodium](https://github.com/michelp/pgsodium) | Encryption using libsodium |
+| [pg_lake](https://github.com/Snowflake-Labs/pg_lake) | Iceberg and data lake access |
 
 ## Usage
 
@@ -36,6 +37,7 @@ CREATE EXTENSION vector;
 CREATE EXTENSION postgis;
 CREATE EXTENSION pg_textsearch;
 CREATE EXTENSION pgsodium;
+CREATE EXTENSION pg_lake;
 ```
 
 ## Build

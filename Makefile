@@ -40,6 +40,7 @@ test: build
 		CREATE EXTENSION postgis; \
 		CREATE EXTENSION pg_textsearch; \
 		CREATE EXTENSION pgsodium; \
+		CREATE EXTENSION pg_lake; \
 		SELECT 'all extensions OK';"
 	@docker stop $(CONTAINER_NAME)-test > /dev/null
 	@docker rm $(CONTAINER_NAME)-test > /dev/null
