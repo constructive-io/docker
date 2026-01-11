@@ -49,7 +49,8 @@ RUN apk add --no-cache \
     xz-dev \
     zstd-dev \
     libpq-dev \
-    linux-headers
+    linux-headers \
+    krb5-dev
 
 WORKDIR /build
 
