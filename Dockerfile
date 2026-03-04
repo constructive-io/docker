@@ -4,7 +4,7 @@
 ARG PG_VERSION=17
 ARG PGVECTOR_VERSION=0.8.0
 ARG POSTGIS_VERSION=3.5.1
-ARG PG_TEXTSEARCH_VERSION=0.2.0
+ARG PG_TEXTSEARCH_VERSION=0.6.0
 ARG PGSODIUM_VERSION=3.1.9
 
 #############################################
@@ -59,8 +59,6 @@ RUN curl -L https://download.osgeo.org/postgis/source/postgis-${POSTGIS_VERSION}
 # pg_textsearch (BM25)
 RUN git clone --branch v${PG_TEXTSEARCH_VERSION} --depth 1 https://github.com/timescale/pg_textsearch.git && \
     cd pg_textsearch && \
-    # Fix missing math.h include (upstream bug)
-    sed -i '1i #include <math.h>' src/am/build.c && \
     make -j$(nproc) && \
     make install
 
