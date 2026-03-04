@@ -4,9 +4,7 @@
 ARG PG_VERSION=17
 ARG PGVECTOR_VERSION=0.8.0
 ARG POSTGIS_VERSION=3.5.1
-# Pin to main branch commit that includes the ResourceOwnerEnlarge crash fix (PR #248)
-# No tagged release includes this fix yet (latest release is v0.5.1)
-ARG PG_TEXTSEARCH_COMMIT=ae1c221
+ARG PG_TEXTSEARCH_VERSION=0.6.0
 ARG PGSODIUM_VERSION=3.1.9
 
 #############################################
@@ -16,7 +14,7 @@ FROM postgres:${PG_VERSION}-alpine AS builder
 
 ARG PGVECTOR_VERSION
 ARG POSTGIS_VERSION
-ARG PG_TEXTSEARCH_COMMIT
+ARG PG_TEXTSEARCH_VERSION
 ARG PGSODIUM_VERSION
 
 RUN apk add --no-cache \
@@ -59,12 +57,8 @@ RUN curl -L https://download.osgeo.org/postgis/source/postgis-${POSTGIS_VERSION}
     make install
 
 # pg_textsearch (BM25)
-# Build from main at a specific commit to include the temp-table/transaction
-# crash fix (PR #248, issue #247: ResourceOwnerEnlarge on rollback).
-# The math.h workaround is no longer needed (fixed upstream in v0.3.0).
-RUN git clone https://github.com/timescale/pg_textsearch.git && \
+RUN git clone --branch v${PG_TEXTSEARCH_VERSION} --depth 1 https://github.com/timescale/pg_textsearch.git && \
     cd pg_textsearch && \
-    git checkout ${PG_TEXTSEARCH_COMMIT} && \
     make -j$(nproc) && \
     make install
 
