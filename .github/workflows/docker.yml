@@ -8,9 +8,8 @@ on:
     branches: [main]
 
 env:
-  GHCR_REGISTRY: ghcr.io
-  GHCR_IMAGE: constructive-io/docker/postgres-plus
-  DOCKERHUB_IMAGE: constructiveio/postgres
+  REGISTRY: ghcr.io
+  IMAGE_NAME: constructive-io/docker/postgres-plus
   PG_VERSION: '17'
 
 concurrency:
@@ -42,28 +41,19 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GHCR
+      - name: Log in to Container Registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.GHCR_REGISTRY }}
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Log in to Docker Hub
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: |
-            ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE }}
-            ${{ env.DOCKERHUB_IMAGE }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=${{ env.PG_VERSION }},enable=${{ github.ref == 'refs/heads/main' }}
@@ -86,65 +76,36 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build & push by digest (GHCR)
+      - name: Build & push by digest
         if: github.event_name != 'pull_request'
-        id: build-ghcr
+        id: build
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,name=${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE }},push-by-digest=true,push=true
+          outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,push=true
           build-args: |
             PG_VERSION=${{ env.PG_VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build & push by digest (Docker Hub)
-        if: github.event_name != 'pull_request'
-        id: build-dockerhub
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          platforms: ${{ matrix.platform }}
-          labels: ${{ steps.meta.outputs.labels }}
-          outputs: type=image,name=${{ env.DOCKERHUB_IMAGE }},push-by-digest=true,push=true
-          build-args: |
-            PG_VERSION=${{ env.PG_VERSION }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Export GHCR digest
+      - name: Export digest
         if: github.event_name != 'pull_request'
         run: |
-          mkdir -p "${{ runner.temp }}/digests-ghcr"
-          digest="${{ steps.build-ghcr.outputs.digest }}"
-          touch "${{ runner.temp }}/digests-ghcr/${digest#sha256:}"
+          mkdir -p "${{ runner.temp }}/digests"
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
 
-      - name: Export Docker Hub digest
-        if: github.event_name != 'pull_request'
-        run: |
-          mkdir -p "${{ runner.temp }}/digests-dockerhub"
-          digest="${{ steps.build-dockerhub.outputs.digest }}"
-          touch "${{ runner.temp }}/digests-dockerhub/${digest#sha256:}"
-
-      - name: Upload GHCR digest
+      - name: Upload digest
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: digests-ghcr-${{ matrix.arch }}
-          path: ${{ runner.temp }}/digests-ghcr/*
+          name: digests-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
 
-      - name: Upload Docker Hub digest
-        if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: digests-dockerhub-${{ matrix.arch }}
-          path: ${{ runner.temp }}/digests-dockerhub/*
-
-  publish-manifests:
+  publish-postgres-plus-manifest:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     needs: build-postgres-plus
@@ -157,38 +118,25 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Log in to GHCR
+      - name: Log in to Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.GHCR_REGISTRY }}
+          registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Download GHCR digests
+      - name: Download digests
         uses: actions/download-artifact@v4
         with:
-          pattern: digests-ghcr-*
-          path: ${{ runner.temp }}/digests-ghcr
+          pattern: digests-*
+          path: ${{ runner.temp }}/digests
           merge-multiple: true
 
-      - name: Download Docker Hub digests
-        uses: actions/download-artifact@v4
-        with:
-          pattern: digests-dockerhub-*
-          path: ${{ runner.temp }}/digests-dockerhub
-          merge-multiple: true
-
-      - name: Extract GHCR metadata
-        id: meta-ghcr
+      - name: Extract metadata
+        id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=${{ env.PG_VERSION }},enable=${{ github.ref == 'refs/heads/main' }}
@@ -196,24 +144,12 @@ jobs:
             type=semver,pattern={{version}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
             type=semver,pattern={{major}}.{{minor}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
 
-      - name: Extract Docker Hub metadata
-        id: meta-dockerhub
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.DOCKERHUB_IMAGE }}
-          tags: |
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-            type=raw,value=${{ env.PG_VERSION }},enable=${{ github.ref == 'refs/heads/main' }}
-            type=sha,format=short,prefix=
-            type=semver,pattern={{version}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
-            type=semver,pattern={{major}}.{{minor}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
-
-      - name: Create and push GHCR multi-arch manifests
+      - name: Create and push multi-arch manifests
         run: |
           set -euo pipefail
 
-          image="${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE }}"
-          digest_dir="${{ runner.temp }}/digests-ghcr"
+          image="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          digest_dir="${{ runner.temp }}/digests"
 
           if [ ! -d "$digest_dir" ]; then
             echo "No digests directory found at $digest_dir"
@@ -231,42 +167,10 @@ jobs:
             exit 1
           fi
 
-          echo "Creating GHCR manifests for tags:"
-          echo "${{ steps.meta-ghcr.outputs.tags }}"
+          echo "Creating manifests for tags:"
+          echo "${{ steps.meta.outputs.tags }}"
 
-          echo "${{ steps.meta-ghcr.outputs.tags }}" | while read -r tag; do
-            [ -z "$tag" ] && continue
-            echo "Creating multi-arch manifest for $tag"
-            docker buildx imagetools create -t "$tag" $digests
-          done
-
-      - name: Create and push Docker Hub multi-arch manifests
-        run: |
-          set -euo pipefail
-
-          image="${{ env.DOCKERHUB_IMAGE }}"
-          digest_dir="${{ runner.temp }}/digests-dockerhub"
-
-          if [ ! -d "$digest_dir" ]; then
-            echo "No digests directory found at $digest_dir"
-            exit 1
-          fi
-
-          digests=""
-          for digest_file in "$digest_dir"/*; do
-            digest="$(basename "$digest_file")"
-            digests="$digests $image@sha256:$digest"
-          done
-
-          if [ -z "$digests" ]; then
-            echo "No digests found to create manifest"
-            exit 1
-          fi
-
-          echo "Creating Docker Hub manifests for tags:"
-          echo "${{ steps.meta-dockerhub.outputs.tags }}"
-
-          echo "${{ steps.meta-dockerhub.outputs.tags }}" | while read -r tag; do
+          echo "${{ steps.meta.outputs.tags }}" | while read -r tag; do
             [ -z "$tag" ] && continue
             echo "Creating multi-arch manifest for $tag"
             docker buildx imagetools create -t "$tag" $digests
