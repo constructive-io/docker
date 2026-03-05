@@ -13,7 +13,6 @@ Lean PostgreSQL 17 image with essential extensions for modern applications.
 | [pgvector](https://github.com/pgvector/pgvector) | Vector similarity search for embeddings |
 | [PostGIS](https://postgis.net/) | Spatial and geographic data |
 | [pg_textsearch](https://www.tigerdata.com/docs/use-timescale/latest/extensions/pg-textsearch) | BM25 full-text search |
-| [pgsodium](https://github.com/michelp/pgsodium) | Encryption using libsodium |
 
 ## Usage
 
@@ -35,7 +34,6 @@ Enable extensions as needed:
 CREATE EXTENSION vector;
 CREATE EXTENSION postgis;
 CREATE EXTENSION pg_textsearch;
-CREATE EXTENSION pgsodium;
 ```
 
 ## Build
