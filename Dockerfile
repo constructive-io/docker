@@ -91,16 +91,5 @@ COPY --from=builder /usr/local/share/postgresql/ /usr/local/share/postgresql/
 # Preload pg_textsearch and pgsodium so CREATE EXTENSION works without manual config
 RUN echo "shared_preload_libraries = 'pg_textsearch, pgsodium'" >> /usr/local/share/postgresql/postgresql.conf.sample
 
-# Create a 'root' superuser so tools running as Linux root (e.g. CI health checks) connect without errors
-COPY <<'EOF' /docker-entrypoint-initdb.d/00-create-root-role.sql
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'root') THEN
-    CREATE ROLE root WITH LOGIN SUPERUSER;
-  END IF;
-END
-$$;
-EOF
-
 LABEL org.opencontainers.image.source="https://github.com/constructive-io/docker"
 LABEL org.opencontainers.image.description="PostgreSQL 17 with pgvector, PostGIS, pg_textsearch, and pgsodium"
