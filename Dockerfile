@@ -88,8 +88,9 @@ RUN apk add --no-cache \
 COPY --from=builder /usr/local/lib/postgresql/ /usr/local/lib/postgresql/
 COPY --from=builder /usr/local/share/postgresql/ /usr/local/share/postgresql/
 
-# Preload pg_textsearch and pgsodium so CREATE EXTENSION works without manual config
-RUN echo "shared_preload_libraries = 'pg_textsearch, pgsodium'" >> /usr/local/share/postgresql/postgresql.conf.sample
+# Preload pg_textsearch so CREATE EXTENSION works without manual config
+# NOTE: pgsodium is intentionally excluded — it requires a getkey script at boot
+RUN echo "shared_preload_libraries = 'pg_textsearch'" >> /usr/local/share/postgresql/postgresql.conf.sample
 
 LABEL org.opencontainers.image.source="https://github.com/constructive-io/docker"
 LABEL org.opencontainers.image.description="PostgreSQL 17 with pgvector, PostGIS, pg_textsearch, and pgsodium"
