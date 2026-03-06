@@ -6,7 +6,7 @@ ARG PGVECTOR_VERSION=0.8.0
 ARG POSTGIS_VERSION=3.5.1
 # Pin to main branch commit that includes the ResourceOwnerEnlarge crash fix (PR #248)
 # No tagged release includes this fix yet (latest release is v0.5.1)
-ARG PG_TEXTSEARCH_COMMIT=ae1c221
+ARG PG_TEXTSEARCH_COMMIT=ad4f8328780367526fce8997207fa701ef4d014d
 
 #############################################
 # Stage 1: Build extensions
