@@ -39,7 +39,6 @@ test: build
 		CREATE EXTENSION vector; \
 		CREATE EXTENSION postgis; \
 		CREATE EXTENSION pg_textsearch; \
-		CREATE EXTENSION pgsodium; \
 		SELECT 'all extensions OK';"
 	@docker stop $(CONTAINER_NAME)-test > /dev/null
 	@docker rm $(CONTAINER_NAME)-test > /dev/null
