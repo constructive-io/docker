@@ -46,3 +46,12 @@ make shell    # psql into container
 make clean    # Remove image
 ```
 
+## Building manually
+
+```bash
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t docker.io/constructiveio/postgres:18 \
+  -t docker.io/constructiveio/postgres:latest \
+  --push .
+```
