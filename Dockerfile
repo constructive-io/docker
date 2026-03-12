@@ -4,7 +4,7 @@
 ARG PG_VERSION=18
 ARG PGVECTOR_VERSION=0.8.2
 ARG POSTGIS_VERSION=3.6.2
-ARG PG_TEXTSEARCH_VERSION=0.6.0
+ARG PG_TEXTSEARCH_VERSION=0.6.1
 
 #############################################
 # Stage 1: Build extensions
