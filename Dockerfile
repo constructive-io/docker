@@ -1,10 +1,10 @@
 # Lean PostgreSQL image with pgvector, PostGIS, and pg_textsearch
 # Multi-stage build - all toolchains discarded, only artifacts kept
 
-ARG PG_VERSION=17
-ARG PGVECTOR_VERSION=0.8.0
-ARG POSTGIS_VERSION=3.5.1
-ARG PG_TEXTSEARCH_VERSION=0.6.0
+ARG PG_VERSION=18
+ARG PGVECTOR_VERSION=0.8.2
+ARG POSTGIS_VERSION=3.6.2
+ARG PG_TEXTSEARCH_VERSION=0.6.1
 
 #############################################
 # Stage 1: Build extensions
@@ -82,4 +82,4 @@ COPY --from=builder /usr/local/share/postgresql/ /usr/local/share/postgresql/
 RUN echo "shared_preload_libraries = 'pg_textsearch'" >> /usr/local/share/postgresql/postgresql.conf.sample
 
 LABEL org.opencontainers.image.source="https://github.com/constructive-io/docker"
-LABEL org.opencontainers.image.description="PostgreSQL 17 with pgvector, PostGIS, and pg_textsearch"
+LABEL org.opencontainers.image.description="PostgreSQL 18 with pgvector, PostGIS, and pg_textsearch"
