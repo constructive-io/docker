@@ -4,7 +4,7 @@
    <img src="https://raw.githubusercontent.com/constructive-io/docker/refs/heads/main/img/logo.svg" alt="constructive" height="180"><br />
 </p>
 
-Lean PostgreSQL 17 image with essential extensions for modern applications.
+Lean PostgreSQL 18 image with essential extensions for modern applications.
 
 ## Extensions
 
