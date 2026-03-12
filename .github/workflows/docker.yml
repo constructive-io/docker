@@ -10,7 +10,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: constructive-io/docker/postgres-plus
-  PG_VERSION: '17'
+  PG_VERSION: '18'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-docker-postgres-plus
