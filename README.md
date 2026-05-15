@@ -13,6 +13,8 @@ Lean PostgreSQL 18 image with essential extensions for modern applications.
 | [pgvector](https://github.com/pgvector/pgvector) | Vector similarity search for embeddings |
 | [PostGIS](https://postgis.net/) | Spatial and geographic data |
 | [pg_textsearch](https://www.tigerdata.com/docs/use-timescale/latest/extensions/pg-textsearch) | BM25 full-text search |
+| [pg_cron](https://github.com/citusdata/pg_cron) | Job scheduler for periodic tasks |
+| [pg_partman](https://github.com/pgpartman/pg_partman) | Partition management |
 
 ## Usage
 
@@ -34,6 +36,8 @@ Enable extensions as needed:
 CREATE EXTENSION vector;
 CREATE EXTENSION postgis;
 CREATE EXTENSION pg_textsearch;
+CREATE EXTENSION pg_cron;
+CREATE EXTENSION pg_partman;
 ```
 
 ## Build

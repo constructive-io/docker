@@ -39,6 +39,8 @@ test: build
 		CREATE EXTENSION vector; \
 		CREATE EXTENSION postgis; \
 		CREATE EXTENSION pg_textsearch; \
+		CREATE EXTENSION pg_cron; \
+		CREATE EXTENSION pg_partman; \
 		SELECT 'all extensions OK';"
 	@docker stop $(CONTAINER_NAME)-test > /dev/null
 	@docker rm $(CONTAINER_NAME)-test > /dev/null
