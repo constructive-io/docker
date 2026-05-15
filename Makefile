@@ -1,6 +1,6 @@
 .PHONY: build run stop clean test shell push
 
-IMAGE_NAME ?= constructive/postgres
+IMAGE_NAME ?= constructiveio/postgres-plus
 IMAGE_TAG ?= latest
 CONTAINER_NAME ?= constructive-pg
 POSTGRES_PASSWORD ?= postgres
