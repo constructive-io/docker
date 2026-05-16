@@ -1,4 +1,6 @@
-# Constructive Docker
+# Constructive DB
+
+> The official Docker image for the Constructive database.
 
 <p align="center" width="100%">
    <img src="https://raw.githubusercontent.com/constructive-io/docker/refs/heads/main/img/logo.svg" alt="constructive" height="180"><br />
@@ -20,14 +22,14 @@ Lean PostgreSQL 18 image with essential extensions for modern applications.
 
 ```bash
 # Pull the image
-docker pull ghcr.io/constructive-io/docker/postgres-plus:latest
+docker pull constructiveio/postgres-plus:latest
 
 # Run
 docker run -d \
   --name postgres \
   -e POSTGRES_PASSWORD=secret \
   -p 5432:5432 \
-  ghcr.io/constructive-io/docker/postgres-plus:latest
+  constructiveio/postgres-plus:latest
 ```
 
 Enable extensions as needed:
@@ -55,7 +57,7 @@ make clean    # Remove image
 ```bash
 docker buildx build \
   --platform linux/amd64,linux/arm64 \
-  -t ghcr.io/constructive-io/docker/postgres-plus:18 \
-  -t ghcr.io/constructive-io/docker/postgres-plus:latest \
+  -t constructiveio/postgres-plus:18 \
+  -t constructiveio/postgres-plus:latest \
   --push .
 ```
