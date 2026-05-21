@@ -17,6 +17,7 @@ Lean PostgreSQL 18 image with essential extensions for modern applications.
 | [pg_textsearch](https://github.com/timescale/pg_textsearch) | 1.2.0 | BM25 full-text search |
 | [pg_cron](https://github.com/citusdata/pg_cron) | 1.6.7 | Job scheduler for periodic tasks |
 | [pg_partman](https://github.com/pgpartman/pg_partman) | 5.4.3 | Partition management |
+| [pg_stat_statements](https://www.postgresql.org/docs/current/pgstatstatements.html) | built-in | Query performance statistics |
 
 ## Usage
 
@@ -40,7 +41,12 @@ CREATE EXTENSION postgis;
 CREATE EXTENSION pg_textsearch;
 CREATE EXTENSION pg_cron;
 CREATE EXTENSION pg_partman;
+CREATE EXTENSION pg_stat_statements;
 ```
+
+## Configuration
+
+`track_io_timing` is enabled by default for accurate I/O metrics in `pg_stat_statements`. This powers the usage metering and query stats collection pipeline.
 
 ## Build
 
