@@ -95,7 +95,8 @@ COPY --from=builder /usr/local/lib/postgresql/ /usr/local/lib/postgresql/
 COPY --from=builder /usr/local/share/postgresql/ /usr/local/share/postgresql/
 
 # Preload extensions that require shared_preload_libraries
-RUN echo "shared_preload_libraries = 'pg_textsearch,pg_cron,pg_partman_bgw'" >> /usr/local/share/postgresql/postgresql.conf.sample
+RUN echo "shared_preload_libraries = 'pg_stat_statements,pg_textsearch,pg_cron,pg_partman_bgw'" >> /usr/local/share/postgresql/postgresql.conf.sample && \
+    echo "track_io_timing = on" >> /usr/local/share/postgresql/postgresql.conf.sample
 
 LABEL org.opencontainers.image.source="https://github.com/constructive-io/docker"
-LABEL org.opencontainers.image.description="PostgreSQL 18 with pgvector, PostGIS, pg_textsearch, pg_cron, and pg_partman"
+LABEL org.opencontainers.image.description="PostgreSQL 18 with pgvector, PostGIS, pg_textsearch, pg_cron, pg_partman, and pg_stat_statements"
