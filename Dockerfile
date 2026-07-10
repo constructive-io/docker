@@ -1,11 +1,10 @@
-# Lean PostgreSQL image with pgvector, PostGIS, pg_textsearch, pg_cron, and pg_partman
+# Lean PostgreSQL image with pgvector, PostGIS, pg_textsearch, and pg_partman
 # Multi-stage build - all toolchains discarded, only artifacts kept
 
 ARG PG_VERSION=18
 ARG PGVECTOR_VERSION=0.8.2
 ARG POSTGIS_VERSION=3.6.2
-ARG PG_TEXTSEARCH_VERSION=1.2.0
-ARG PG_CRON_VERSION=1.6.7
+ARG PG_TEXTSEARCH_VERSION=1.3.1
 ARG PG_PARTMAN_VERSION=5.4.3
 
 #############################################
@@ -16,15 +15,12 @@ FROM postgres:${PG_VERSION}-alpine AS builder
 ARG PGVECTOR_VERSION
 ARG POSTGIS_VERSION
 ARG PG_TEXTSEARCH_VERSION
-ARG PG_CRON_VERSION
 ARG PG_PARTMAN_VERSION
 
 RUN apk add --no-cache \
     git \
     build-base \
     postgresql-dev \
-    clang19 \
-    llvm19 \
     curl \
     # PostGIS dependencies
     geos-dev \
@@ -41,8 +37,10 @@ RUN apk add --no-cache \
 
 WORKDIR /build
 
-# Symlink for LLVM JIT (postgres expects llvm-lto-19)
-RUN ln -s /usr/bin/llvm19-lto /usr/bin/llvm-lto-19
+# Install the clang/llvm major version postgres was compiled with (for JIT bitcode)
+RUN ver="$(sed -n 's/^CLANG *= *clang-//p' /usr/local/lib/postgresql/pgxs/src/Makefile.global)" && \
+    apk add --no-cache "clang${ver}" "llvm${ver}" && \
+    ln -sf "/usr/bin/llvm${ver}-lto" "/usr/bin/llvm-lto-${ver}"
 
 # pgvector
 RUN git clone --branch v${PGVECTOR_VERSION} --depth 1 https://github.com/pgvector/pgvector.git && \
@@ -60,12 +58,6 @@ RUN curl -L https://download.osgeo.org/postgis/source/postgis-${POSTGIS_VERSION}
 # pg_textsearch (BM25)
 RUN git clone --branch v${PG_TEXTSEARCH_VERSION} --depth 1 https://github.com/timescale/pg_textsearch.git && \
     cd pg_textsearch && \
-    make -j$(nproc) && \
-    make install
-
-# pg_cron (job scheduler)
-RUN git clone --branch v${PG_CRON_VERSION} --depth 1 https://github.com/citusdata/pg_cron.git && \
-    cd pg_cron && \
     make -j$(nproc) && \
     make install
 
@@ -95,8 +87,8 @@ COPY --from=builder /usr/local/lib/postgresql/ /usr/local/lib/postgresql/
 COPY --from=builder /usr/local/share/postgresql/ /usr/local/share/postgresql/
 
 # Preload extensions that require shared_preload_libraries
-RUN echo "shared_preload_libraries = 'pg_stat_statements,pg_textsearch,pg_cron,pg_partman_bgw'" >> /usr/local/share/postgresql/postgresql.conf.sample && \
+RUN echo "shared_preload_libraries = 'pg_stat_statements,pg_textsearch,pg_partman_bgw'" >> /usr/local/share/postgresql/postgresql.conf.sample && \
     echo "track_io_timing = on" >> /usr/local/share/postgresql/postgresql.conf.sample
 
 LABEL org.opencontainers.image.source="https://github.com/constructive-io/docker"
-LABEL org.opencontainers.image.description="PostgreSQL 18 with pgvector, PostGIS, pg_textsearch, pg_cron, pg_partman, and pg_stat_statements"
+LABEL org.opencontainers.image.description="PostgreSQL 18 with pgvector, PostGIS, pg_textsearch, pg_partman, and pg_stat_statements"
