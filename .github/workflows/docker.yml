@@ -200,6 +200,20 @@ jobs:
             type=semver,pattern={{version}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
             type=semver,pattern={{major}}.{{minor}},enable=${{ startsWith(github.ref, 'refs/tags/v') }}
 
+      - name: Checkout
+        if: env.DOCKERHUB_ENABLED == 'true'
+        uses: actions/checkout@v4
+
+      - name: Update Docker Hub description
+        if: env.DOCKERHUB_ENABLED == 'true' && github.ref == 'refs/heads/main'
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ env.DOCKERHUB_IMAGE }}
+          short-description: "Lean PostgreSQL 18 with pgvector, PostGIS, pg_textsearch, pg_partman"
+          readme-filepath: ./README.md
+
       - name: Create and push Docker Hub manifests
         if: env.DOCKERHUB_ENABLED == 'true'
         run: |
