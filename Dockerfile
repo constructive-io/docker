@@ -21,8 +21,6 @@ RUN apk add --no-cache \
     git \
     build-base \
     postgresql-dev \
-    clang \
-    llvm \
     curl \
     # PostGIS dependencies
     geos-dev \
@@ -39,10 +37,10 @@ RUN apk add --no-cache \
 
 WORKDIR /build
 
-# Symlink for LLVM JIT (postgres expects llvm-lto-<major>)
-RUN lto="$(ls /usr/bin/llvm*-lto | head -n1)" && \
-    ver="$(basename "$lto" | tr -dc '0-9')" && \
-    ln -sf "$lto" "/usr/bin/llvm-lto-${ver}"
+# Install the clang/llvm major version postgres was compiled with (for JIT bitcode)
+RUN ver="$(sed -n 's/^CLANG *= *clang-//p' /usr/local/lib/postgresql/pgxs/src/Makefile.global)" && \
+    apk add --no-cache "clang${ver}" "llvm${ver}" && \
+    ln -sf "/usr/bin/llvm${ver}-lto" "/usr/bin/llvm-lto-${ver}"
 
 # pgvector
 RUN git clone --branch v${PGVECTOR_VERSION} --depth 1 https://github.com/pgvector/pgvector.git && \
