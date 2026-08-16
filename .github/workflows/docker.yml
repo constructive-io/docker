@@ -70,12 +70,26 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64
           push: false
+          load: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             PG_VERSION=${{ env.PG_VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # Gate: a build whose PostGIS is vulnerable to CVE-2026-73514 /
+      # CVE-2026-73515 must never reach a tag. The PR job runs it on the loaded
+      # image; the push job below runs it on the pushed digest before the
+      # manifest job can move `latest`/`18` onto it.
+      - name: Verify PostGIS security (PR, amd64)
+        if: github.event_name == 'pull_request' && matrix.platform == 'linux/amd64'
+        run: |
+          set -euo pipefail
+          tag="$(echo '${{ steps.meta.outputs.tags }}' | head -1)"
+          docker run -d --name postgis-verify -e POSTGRES_PASSWORD=test "$tag"
+          until docker exec postgis-verify pg_isready -U postgres -q; do sleep 1; done
+          ./scripts/verify-postgis-security.sh postgis-verify
 
       - name: Build & push by digest
         if: github.event_name != 'pull_request'
@@ -91,6 +105,15 @@ jobs:
             PG_VERSION=${{ env.PG_VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Verify PostGIS security (pushed digest)
+        if: github.event_name != 'pull_request' && matrix.platform == 'linux/amd64'
+        run: |
+          set -euo pipefail
+          image="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}"
+          docker run -d --name postgis-verify -e POSTGRES_PASSWORD=test "$image"
+          until docker exec postgis-verify pg_isready -U postgres -q; do sleep 1; done
+          ./scripts/verify-postgis-security.sh postgis-verify
 
       - name: Export digest
         if: github.event_name != 'pull_request'

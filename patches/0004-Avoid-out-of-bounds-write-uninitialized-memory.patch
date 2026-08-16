@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Paul Ramsey <pramsey@cleverelephant.ca>
+Date: Mon, 22 Jun 2026 14:34:08 -0700
+Subject: [PATCH 4/4] Avoid out-of-bounds write, uninitialized memory.
+
+(cherry picked from commit 5964d6f1ae4d2ea69f2a8a76f260674bab2e93b4)
+---
+ extensions/address_standardizer/gamma.c       | 2 +-
+ extensions/address_standardizer/std_pg_hash.c | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/extensions/address_standardizer/gamma.c b/extensions/address_standardizer/gamma.c
+index 091115d8d..f56025d68 100644
+--- a/extensions/address_standardizer/gamma.c
++++ b/extensions/address_standardizer/gamma.c
+@@ -149,7 +149,7 @@ RULES *rules_init( ERR_PARAM *err_p ) {
+     rules->rule_number = 0;
+     rules->last_node = EPSILON;
+ 
+-    PAGC_ALLOC_STRUC(r_p,RULE_PARAM,err_p,NULL) ;
++    PAGC_CALLOC_STRUC(r_p,RULE_PARAM,1,err_p,NULL) ;
+     rules->r_p = r_p;
+ 
+     /* -- initialize the statistics record -- */
+diff --git a/extensions/address_standardizer/std_pg_hash.c b/extensions/address_standardizer/std_pg_hash.c
+index 63f490415..a83be783a 100644
+--- a/extensions/address_standardizer/std_pg_hash.c
++++ b/extensions/address_standardizer/std_pg_hash.c
+@@ -534,12 +534,12 @@ static int parse_rule(char *buf, int *rule)
+ 
+ 
+     while (1) {
++        if (nr >= MAX_RULE_LENGTH) return -1;
+         *r = strtol( p, &q, 10 );
+         if (p == q) break;
+         p = q;
+         nr++;
+         r++;
+-        if (nr > MAX_RULE_LENGTH) return -1;
+     }
+ 
+     return nr;

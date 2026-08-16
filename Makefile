@@ -1,4 +1,4 @@
-.PHONY: build run stop clean test shell push
+.PHONY: build run stop clean test verify-security shell push
 
 IMAGE_NAME ?= constructiveio/postgres-plus
 IMAGE_TAG ?= latest
@@ -41,8 +41,14 @@ test: build
 		CREATE EXTENSION pg_textsearch; \
 		CREATE EXTENSION pg_partman; \
 		SELECT 'all extensions OK';"
+	@./scripts/verify-postgis-security.sh $(CONTAINER_NAME)-test
 	@docker stop $(CONTAINER_NAME)-test > /dev/null
 	@docker rm $(CONTAINER_NAME)-test > /dev/null
+
+# Assert the running $(CONTAINER_NAME) is not a PostGIS build vulnerable to
+# CVE-2026-73514 / CVE-2026-73515.
+verify-security:
+	@./scripts/verify-postgis-security.sh $(CONTAINER_NAME)
 
 clean: stop
 	docker rmi $(IMAGE_NAME):$(IMAGE_TAG) || true

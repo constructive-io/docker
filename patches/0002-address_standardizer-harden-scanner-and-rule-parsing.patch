@@ -1,0 +1,303 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Darafei Praliaskouski <me@komzpa.net>
+Date: Sun, 9 Aug 2026 14:55:47 +0400
+Subject: [PATCH 2/4] address_standardizer: harden scanner and rule parsing
+ bounds
+
+Ported-from: https://github.com/postgis/address_standardizer/commit/eda92cebef677bb604d1574b85328e3571c1590e
+(cherry picked from commit 1ce0012b76ff0da4ba31ad0b6e9c768faa23a78a)
+---
+ extensions/address_standardizer/gamma.c    | 95 +++++++++++++++++++---
+ extensions/address_standardizer/standard.c | 46 ++++++++---
+ 2 files changed, 121 insertions(+), 20 deletions(-)
+
+diff --git a/extensions/address_standardizer/gamma.c b/extensions/address_standardizer/gamma.c
+index 0824c6535..091115d8d 100644
+--- a/extensions/address_standardizer/gamma.c
++++ b/extensions/address_standardizer/gamma.c
+@@ -35,6 +35,10 @@ static int initialize_link( ERR_PARAM *, KW *** , NODE ) ;
+ static void classify_link( RULE_PARAM * , KW ***, KW *, NODE , SYMB , SYMB  ) ;
+ static void add_failure_linkage( KW ***, NODE , NODE  ) ;
+ static NODE **precompute_gamma_function( ERR_PARAM *, NODE ** , KW ***, NODE  ) ;
++static void set_memory_error( ERR_PARAM * ) ;
++#ifdef BUILD_API
++static int rules_allocated_node_count( const RULES * ) ;
++#endif
+ 
+ static double load_value[ NUMBER_OF_WEIGHTS ] = {
+    0.00, 0.325, 0.35 , 0.375 , 0.4 ,
+@@ -42,6 +46,29 @@ static double load_value[ NUMBER_OF_WEIGHTS ] = {
+    0.7 , 0.75 , 0.8 , 0.825 , 0.85 ,
+    0.9 , 0.95 , 1.00 } ;
+ 
++static void set_memory_error( ERR_PARAM *err_p ) {
++   LOG_MESS( "Insufficient Memory", err_p ) ;
++}
++
++#ifdef BUILD_API
++static int rules_allocated_node_count( const RULES *rules ) {
++   int node_count;
++
++   if ( rules == NULL ) {
++      return 0;
++   }
++
++   node_count = rules -> last_node + 1;
++   if ( node_count < 0 ) {
++      return 0;
++   }
++   if ( node_count > MAXNODES ) {
++      return MAXNODES;
++   }
++   return node_count;
++}
++#endif
++
+ /*---------------------------------------------------------------------------
+ gamma.c (refresh_transducer)
+ called by analyze.c (prepare_target_pattern)
+@@ -135,6 +162,7 @@ RULES *rules_init( ERR_PARAM *err_p ) {
+ 
+     /* -- storage for temporary trie for rules -- */
+     PAGC_CALLOC_STRUC(Trie,NODE *,MAXNODES,err_p,NULL);
++    rules -> Trie = Trie ;
+ 
+     /* -- initialize the first( EPSILON ) node of the trie -- */
+     PAGC_CALLOC_STRUC(Trie[EPSILON],NODE,MAXINSYM,err_p,NULL);
+@@ -156,9 +184,11 @@ RULES *rules_init( ERR_PARAM *err_p ) {
+        /* Cleanup allocated resources */
+        FREE_AND_NULL(o_l);
+        FREE_AND_NULL(k_s);
++       FREE_AND_NULL(r_s);
+        FREE_AND_NULL(r_p);
++       rules -> r_p = NULL;
+ 
+-       PAGC_DESTROY_2D_ARRAY(rules -> Trie,NODE,MAXINSYM);
++       PAGC_DESTROY_2D_ARRAY(rules -> Trie,NODE,rules_allocated_node_count(rules));
+        rules -> Trie = NULL;
+ 
+        rules_free(rules);
+@@ -170,7 +200,6 @@ RULES *rules_init( ERR_PARAM *err_p ) {
+     rules -> r_p -> key_space = k_s ;
+     rules -> r_p -> output_link = o_l ;
+ 
+-    rules -> Trie = Trie ;
+     rules -> rule_end = r_s + RULESPACESIZE ;
+ 
+     rules -> r = r_s ;
+@@ -298,6 +327,13 @@ int rules_add_rule(RULES *rules, int num, int *rule) {
+     t = rule[i] ;
+     i++ ;
+     w = rule[i] ;
++    if ( t < 0 || t >= MAX_CL ) {
++        RET_ERR2( "rules_add_rule: Rule File: Bad Type %d in Rule #%d\n",
++                  t ,
++                  rules -> rule_number ,
++                  rules -> err_p,
++                  7 ) ;
++    }
+ 
+     classify_link( rules -> r_p ,
+                    o_l ,
+@@ -335,12 +371,16 @@ int rules_ready(RULES *rules) {
+        }
+     }
+ 
++    rules -> r_p -> num_nodes = rules -> last_node ;
++
+     /* -- create the global Gamma function matrix -- */
+     if ( ( rules -> r_p -> gamma_matrix =
+             precompute_gamma_function( rules -> err_p,
+                                        rules -> Trie ,
+                                        rules -> r_p -> output_link ,
+                                        rules -> last_node ) ) == NULL ) {
++       PAGC_DESTROY_2D_ARRAY(rules -> Trie,NODE,rules -> last_node) ;
++       rules -> Trie = NULL ;
+        return 5 ;
+     }
+ 
+@@ -348,8 +388,6 @@ int rules_ready(RULES *rules) {
+     PAGC_DESTROY_2D_ARRAY(rules -> Trie,NODE,rules -> last_node) ;
+     rules -> Trie = NULL ;
+ 
+-    rules -> r_p -> num_nodes = rules -> last_node ;
+-
+ /*
+     if ( glo_p -> log_init ) {
+        CLIENT_ERR( err_p ) ;
+@@ -368,7 +406,15 @@ int rules_ready(RULES *rules) {
+ void rules_free(RULES *rules) {
+ 
+     if (!rules) return;
+-    if (rules->r_p) destroy_rules(rules->r_p);
++    if (rules->r_p) {
++        if (!rules->ready && rules->r_p->num_nodes == 0) {
++            rules -> r_p -> num_nodes = rules_allocated_node_count(rules) ;
++        }
++        destroy_rules(rules->r_p);
++    }
++    if (rules->Trie) {
++        PAGC_DESTROY_2D_ARRAY(rules -> Trie,NODE,rules_allocated_node_count(rules));
++    }
+     free(rules);
+     rules = NULL;
+ }
+@@ -623,9 +669,13 @@ void destroy_rules( RULE_PARAM * r_p ) {
+       DBG("destroy_rules 2");
+       FREE_AND_NULL( r_p -> key_space ) ;
+       DBG("destroy_rules 3");
+-      PAGC_DESTROY_2D_ARRAY(r_p->output_link,KW*,r_p->num_nodes) ;
++      if (r_p->output_link) {
++         PAGC_DESTROY_2D_ARRAY(r_p->output_link,KW*,r_p->num_nodes) ;
++      }
+       DBG("destroy_rules 4");
+-      PAGC_DESTROY_2D_ARRAY(r_p->gamma_matrix,NODE,r_p->num_nodes) ;
++      if (r_p->gamma_matrix) {
++         PAGC_DESTROY_2D_ARRAY(r_p->gamma_matrix,NODE,r_p->num_nodes) ;
++      }
+       DBG(" destroy_rules 5");
+       FREE_AND_NULL( r_p ) ;
+    }
+@@ -746,11 +796,36 @@ static NODE **precompute_gamma_function( ERR_PARAM *err_p ,
+         *Queue ;
+ 
+    /* -- Storage for Failure Function -- */
+-   PAGC_CALLOC_STRUC(Failure,NODE,n,err_p,NULL) ;
++   Failure = calloc(n, sizeof(NODE));
++   if (!Failure) {
++      set_memory_error(err_p);
++      return NULL;
++   }
+    /* -- Storage for Breadth First Search Queue -- */
+-   PAGC_CALLOC_STRUC(Queue,NODE,n,err_p,NULL) ;
++   Queue = calloc(n, sizeof(NODE));
++   if (!Queue) {
++      set_memory_error(err_p);
++      FREE_AND_NULL(Failure);
++      return NULL;
++   }
+ 
+-   PAGC_CALLOC_2D_ARRAY(Gamma,NODE,n,MAXINSYM,err_p,NULL) ;
++   Gamma = calloc(n, sizeof(NODE *));
++   if (!Gamma) {
++      set_memory_error(err_p);
++      FREE_AND_NULL(Failure);
++      FREE_AND_NULL(Queue);
++      return NULL;
++   }
++   for (i = 0; i < n; i++) {
++      Gamma[i] = calloc(MAXINSYM, sizeof(NODE));
++      if (!Gamma[i]) {
++         set_memory_error(err_p);
++         PAGC_DESTROY_2D_ARRAY(Gamma,NODE,i);
++         FREE_AND_NULL(Failure);
++         FREE_AND_NULL(Queue);
++         return NULL;
++      }
++   }
+ 
+    u = EPSILON ;
+    i = 0 ;
+diff --git a/extensions/address_standardizer/standard.c b/extensions/address_standardizer/standard.c
+index 07c3348c4..70b0e011b 100644
+--- a/extensions/address_standardizer/standard.c
++++ b/extensions/address_standardizer/standard.c
+@@ -41,8 +41,26 @@ static char * _Scan_Next_(STAND_PARAM *, char *) ;
+ 
+ static char __spacer__[] = " \\-.)}>_" ;
+ 
++#define NO_STANDARDIZATION_PREFIX "std_standardize_mm: No standardization of "
++#define MAX_STANDARDIZATION_ERROR_INPUT \
++	((int) (MAXSTRLEN - sizeof(NO_STANDARDIZATION_PREFIX) - 1))
++
++#define ENSURE_SCAN_ROOM(CHARS) \
++	do { \
++		if ((size_t) (__dest__ - __scan_buf__) + (CHARS) >= sizeof(__scan_buf__)) \
++		{ \
++			CLIENT_ERR(__stand_param__->errors) ; \
++			RET_ERR("_Scan_Next_: Token exceeds maximum length", \
++			        __stand_param__->errors, NULL) ; \
++		} \
++	} while (0)
++
++#define TERMINATE_SCAN_BUFFER \
++	ENSURE_SCAN_ROOM(0) ; \
++	*__dest__ = SENTINEL
++
+ #define TERM_AND_LENGTH \
+-	*__dest__ = SENTINEL ; \
++	TERMINATE_SCAN_BUFFER ; \
+ 	n = strlen(__scan_buf__)
+ 
+ #define RETURN_NEW_MORPH(TOKEN_ARG) \
+@@ -53,13 +71,17 @@ static char __spacer__[] = " \\-.)}>_" ;
+ 	return __src__
+ 
+ #define COLLECT_LOOKAHEAD \
++	ENSURE_SCAN_ROOM(2) ; \
+ 	*__dest__++ = a ; __src__++ ; *__dest__++ = b ; __src__++
+ 
+ #define COLLECT_WHILE(COND) \
+-	do { *__dest__++ = a ; __src__++ ; a = *__src__ ; } while (COND)
++	do { \
++		ENSURE_SCAN_ROOM(1) ; \
++		*__dest__++ = a ; __src__++ ; a = *__src__ ; \
++	} while (COND)
+ 
+ #define NO_COLLECT_WHILE(COND) \
+-	do { __dest__++ ; __src__++ ; a = *__src__ ; } while (COND)
++	do { __src__++ ; a = *__src__ ; } while (COND)
+ 
+ #define TEST_FOR_ORD_DIGIT(N,NEXT_LOW,NEXT_UP) \
+ 	if ((b == NEXT_LOW) || (b == NEXT_UP)) \
+@@ -150,13 +172,14 @@ static char * _Scan_Next_( STAND_PARAM *__stand_param__,char * __in_ptr__)
+ 	char *__src__ = __in_ptr__ ;
+ 	char a = *__src__ ;
+ 	char *__dest__ = __scan_buf__ ;
+-	*__dest__ = SENTINEL ;
++	TERMINATE_SCAN_BUFFER ;
+ 
+ 	/*-- <remarks> Type one terminators </remarks> --*/
+ 	if ((a == ',') || (a == '\t') || (a == ';'))
+ 	{
++		ENSURE_SCAN_ROOM(1) ;
+ 		*__dest__++ = a ;
+-		*__dest__ = SENTINEL;
++		TERMINATE_SCAN_BUFFER ;
+ 		set_term(__stand_param__,1,__scan_buf__) ;
+ 		/*-- <remarks> Point to next input char </remarks> --*/
+ 		return (__src__ + 1) ;
+@@ -279,7 +302,8 @@ static char * _Scan_Next_( STAND_PARAM *__stand_param__,char * __in_ptr__)
+ 	/*-- <remarks> Type 2 terminators ( spacing ) </remarks> --*/
+ 	if (strchr(__spacer__,a) != NULL)
+ 	{
+-		NO_COLLECT_WHILE(strchr(__spacer__,a) != NULL) ;
++		NO_COLLECT_WHILE(a != SENTINEL &&
++		                 strchr(__spacer__,a) != NULL) ;
+ 		set_term(__stand_param__,2,__scan_buf__) ;
+ 		/*-- <remarks> Retain position </remarks> --*/
+ 		return (__src__) ;
+@@ -470,8 +494,9 @@ STDADDR *std_standardize_mm(STANDARDIZER *std, char *micro, char *macro, int opt
+     if (macro && macro[0] != '\0') {
+         err = standardize_field( stand_address, macro, MACRO );
+         if (!err) {
+-            RET_ERR1("std_standardize_mm: No standardization of %s!",
+-                     macro, std -> err_p, NULL);
++            RET_ERR2(NO_STANDARDIZATION_PREFIX "%.*s!",
++                     MAX_STANDARDIZATION_ERROR_INPUT, macro,
++                     std -> err_p, NULL);
+         }
+ 
+         if (options & 1) {
+@@ -483,8 +508,9 @@ STDADDR *std_standardize_mm(STANDARDIZER *std, char *micro, char *macro, int opt
+ 
+     err = standardize_field( stand_address, micro, MICRO_M );
+     if (!err) {
+-        RET_ERR1("std_standardize_mm: No standardization of %s!",
+-                 micro, std -> err_p, NULL);
++        RET_ERR2(NO_STANDARDIZATION_PREFIX "%.*s!",
++                 MAX_STANDARDIZATION_ERROR_INPUT, micro,
++                 std -> err_p, NULL);
+     }
+ 
+     if (options & 1) {

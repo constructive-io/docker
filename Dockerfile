@@ -3,7 +3,7 @@
 
 ARG PG_VERSION=18
 ARG PGVECTOR_VERSION=0.8.2
-ARG POSTGIS_VERSION=3.6.2
+ARG POSTGIS_VERSION=3.6.4
 ARG PG_TEXTSEARCH_VERSION=1.3.1
 ARG PG_PARTMAN_VERSION=5.4.3
 
@@ -48,12 +48,26 @@ RUN git clone --branch v${PGVECTOR_VERSION} --depth 1 https://github.com/pgvecto
     make OPTFLAGS="" -j$(nproc) && \
     make install
 
-# PostGIS with Tiger geocoder and address standardizer
+# PostGIS with Tiger geocoder and address standardizer.
+# patches/ carries upstream security fixes released after the 3.6.4 tarball
+# (CVE-2026-73515 FlatGeobuf, CVE-2026-73514 address_standardizer) — `patch`
+# exits non-zero on a reject, so a patch that stops applying fails the build.
+COPY patches/ /build/patches/
+
 RUN curl -L https://download.osgeo.org/postgis/source/postgis-${POSTGIS_VERSION}.tar.gz | tar xz && \
     cd postgis-${POSTGIS_VERSION} && \
+    for p in /build/patches/*.patch; do \
+        echo "Applying $(basename "$p")" && patch -p1 --batch --forward < "$p"; \
+    done && \
     ./configure --without-raster --without-topology && \
     make && \
-    make install
+    make install && \
+    mkdir -p /usr/local/share/postgresql/security && \
+    { echo "postgis_source_version=${POSTGIS_VERSION}"; \
+      for p in /build/patches/*.patch; do echo "patch=$(basename "$p")"; done; \
+      echo "cve_fixed=CVE-2026-73514"; \
+      echo "cve_fixed=CVE-2026-73515"; \
+    } > /usr/local/share/postgresql/security/postgis-patches.txt
 
 # pg_textsearch (BM25)
 RUN git clone --branch v${PG_TEXTSEARCH_VERSION} --depth 1 https://github.com/timescale/pg_textsearch.git && \
