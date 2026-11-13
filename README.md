@@ -83,6 +83,20 @@ on the pushed digest before the `latest`/`18` manifests move.
 Drop the patches when a PostGIS release contains all four fixes; the gate's
 `POSTGIS_MIN_VERSION` floor and manifest check are what to update then.
 
+## PostgreSQL security floor
+
+The base image is `postgres:18-alpine`, so each build takes the newest 18.x
+minor and compiles every extension from source against it. 18.7 (CVE-2026-6460
+and the rest of the 2026-11-12 release) changed the server ABI: an extension
+built against 18.6 fails to load on 18.7 with `undefined symbol`, which is why
+the extensions are never copied in prebuilt.
+
+`scripts/verify-postgres-security.sh <container>` is the gate: it fails when the
+running server is below `server_version_num` 180007, when the
+`composite_type_mismatch` check that fix added is missing or not `error`, and
+when any bundled extension does not load. CI runs it next to the PostGIS gate.
+Raise `PG_MIN_VERSION_NUM` when a later minor is the floor.
+
 ## Building manually
 
 ```bash
