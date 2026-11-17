@@ -43,14 +43,17 @@ test: build
 		SELECT 'all extensions OK';"
 	@./scripts/verify-postgis-security.sh $(CONTAINER_NAME)-test
 	@./scripts/verify-postgres-security.sh $(CONTAINER_NAME)-test
+	@./scripts/verify-pgvector-security.sh $(CONTAINER_NAME)-test
 	@docker stop $(CONTAINER_NAME)-test > /dev/null
 	@docker rm $(CONTAINER_NAME)-test > /dev/null
 
 # Assert the running $(CONTAINER_NAME) is not a PostGIS build vulnerable to
-# CVE-2026-73514 / CVE-2026-73515, nor a server older than 18.7 (CVE-2026-6460).
+# CVE-2026-73514 / CVE-2026-73515, a server older than 18.7 (CVE-2026-6460),
+# nor a pgvector older than 0.8.7 (CVE-2026-103484).
 verify-security:
 	@./scripts/verify-postgis-security.sh $(CONTAINER_NAME)
 	@./scripts/verify-postgres-security.sh $(CONTAINER_NAME)
+	@./scripts/verify-pgvector-security.sh $(CONTAINER_NAME)
 
 clean: stop
 	docker rmi $(IMAGE_NAME):$(IMAGE_TAG) || true
