@@ -89,7 +89,9 @@ jobs:
           set -euo pipefail
           tag="$(echo '${{ steps.meta.outputs.tags }}' | head -1)"
           docker run -d --name postgis-verify -e POSTGRES_PASSWORD=test "$tag"
-          until docker exec postgis-verify pg_isready -U postgres -q; do sleep 1; done
+          # -h 127.0.0.1: the entrypoint's init-time server listens on the socket only and
+          # is shut down again, so a socket check can pass against a server about to stop.
+          until docker exec postgis-verify pg_isready -h 127.0.0.1 -U postgres -q; do sleep 1; done
           ./scripts/verify-postgis-security.sh postgis-verify
           ./scripts/verify-postgres-security.sh postgis-verify
           ./scripts/verify-pgvector-security.sh postgis-verify
@@ -115,7 +117,9 @@ jobs:
           set -euo pipefail
           image="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}"
           docker run -d --name postgis-verify -e POSTGRES_PASSWORD=test "$image"
-          until docker exec postgis-verify pg_isready -U postgres -q; do sleep 1; done
+          # -h 127.0.0.1: the entrypoint's init-time server listens on the socket only and
+          # is shut down again, so a socket check can pass against a server about to stop.
+          until docker exec postgis-verify pg_isready -h 127.0.0.1 -U postgres -q; do sleep 1; done
           ./scripts/verify-postgis-security.sh postgis-verify
           ./scripts/verify-postgres-security.sh postgis-verify
           ./scripts/verify-pgvector-security.sh postgis-verify
