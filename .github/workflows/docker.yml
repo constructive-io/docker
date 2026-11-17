@@ -92,6 +92,7 @@ jobs:
           until docker exec postgis-verify pg_isready -U postgres -q; do sleep 1; done
           ./scripts/verify-postgis-security.sh postgis-verify
           ./scripts/verify-postgres-security.sh postgis-verify
+          ./scripts/verify-pgvector-security.sh postgis-verify
 
       - name: Build & push by digest
         if: github.event_name != 'pull_request'
@@ -117,6 +118,7 @@ jobs:
           until docker exec postgis-verify pg_isready -U postgres -q; do sleep 1; done
           ./scripts/verify-postgis-security.sh postgis-verify
           ./scripts/verify-postgres-security.sh postgis-verify
+          ./scripts/verify-pgvector-security.sh postgis-verify
 
       - name: Export digest
         if: github.event_name != 'pull_request'

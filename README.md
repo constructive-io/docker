@@ -12,7 +12,7 @@ Lean PostgreSQL 18 image with essential extensions for modern applications.
 
 | Extension | Version | Description |
 |-----------|---------|-------------|
-| [pgvector](https://github.com/pgvector/pgvector) | 0.8.2 | Vector similarity search for embeddings |
+| [pgvector](https://github.com/pgvector/pgvector) | 0.8.7 | Vector similarity search for embeddings |
 | [PostGIS](https://postgis.net/) | 3.6.4 (+ security patches) | Spatial and geographic data |
 | [pg_textsearch](https://github.com/timescale/pg_textsearch) | 1.5.1 | BM25 full-text search |
 | [pg_partman](https://github.com/pgpartman/pg_partman) | 5.4.3 | Partition management |
@@ -50,7 +50,7 @@ CREATE EXTENSION pg_stat_statements;
 
 ```bash
 make build            # Build image
-make test             # Build, verify extensions, and run the PostGIS security gate
+make test             # Build, verify extensions, and run the security gates
 make verify-security  # Run the security gate against an already-running container
 make run              # Run container
 make shell            # psql into container
@@ -96,6 +96,19 @@ running server is below `server_version_num` 180007, when the
 `composite_type_mismatch` check that fix added is missing or not `error`, and
 when any bundled extension does not load. CI runs it next to the PostGIS gate.
 Raise `PG_MIN_VERSION_NUM` when a later minor is the floor.
+
+## pgvector security floor
+
+pgvector is built from the `v0.8.7` tag, the release that fixes CVE-2026-103484
+([pgvector#1036](https://github.com/pgvector/pgvector/issues/1036)): an
+out-of-bounds write during an IVFFlat index build, affecting 0.8.6 and below.
+
+`scripts/verify-pgvector-security.sh <container>` is the gate: it fails when the
+extension's default or installed version is below 0.8.7, and when `vector.so`
+does not export `sparsevec_vector_dims`, the symbol the fix commit added, so a
+library older than its SQL metadata is caught too. It builds no index. CI runs
+it next to the other two gates. Raise `PGVECTOR_MIN_VERSION` when a later
+release is the floor.
 
 ## Building manually
 
