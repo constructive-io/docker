@@ -89,6 +89,8 @@ jobs:
           set -euo pipefail
           tag="$(echo '${{ steps.meta.outputs.tags }}' | head -1)"
           docker run -d --name postgis-verify -e POSTGRES_PASSWORD=test "$tag"
+          # initdb runs a temporary server first; wait for the real one
+          until docker logs postgis-verify 2>&1 | grep -q 'PostgreSQL init process complete'; do sleep 1; done
           until docker exec postgis-verify pg_isready -U postgres -q; do sleep 1; done
           ./scripts/verify-postgis-security.sh postgis-verify
           ./scripts/verify-postgres-security.sh postgis-verify
@@ -115,6 +117,8 @@ jobs:
           set -euo pipefail
           image="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}"
           docker run -d --name postgis-verify -e POSTGRES_PASSWORD=test "$image"
+          # initdb runs a temporary server first; wait for the real one
+          until docker logs postgis-verify 2>&1 | grep -q 'PostgreSQL init process complete'; do sleep 1; done
           until docker exec postgis-verify pg_isready -U postgres -q; do sleep 1; done
           ./scripts/verify-postgis-security.sh postgis-verify
           ./scripts/verify-postgres-security.sh postgis-verify
